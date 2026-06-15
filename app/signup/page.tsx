@@ -2,20 +2,29 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
-import { useAuth } from './context/AuthContext';
-import styles from './styles/auth.module.css';
+import { useAuth } from '../context/AuthContext';
+import styles from '../styles/auth.module.css';
 
-export default function LoginPage() {
+const ROLES = ['Director', 'Producer', 'Freelancer', 'Client'] as const;
+type Role = (typeof ROLES)[number];
+
+export default function SignupPage() {
+  const [role, setRole] = useState<Role | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login } = useAuth();
+  const { signup } = useAuth();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
+    if (!role) {
+      setError('Please select a role.');
+      return;
+    }
     if (!email || !password) {
       setError('Please enter your email and password.');
       return;
@@ -23,7 +32,7 @@ export default function LoginPage() {
 
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await signup(email, password, role, name || undefined);
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -35,11 +44,45 @@ export default function LoginPage() {
     <main className={styles.page}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Welcome back</h1>
-          <p className={styles.subtitle}>Log in to your account to continue</p>
+          <h1 className={styles.title}>Create your account</h1>
+          <p className={styles.subtitle}>Tell us a bit about yourself to get started</p>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="name">
+              Full Name (Optional)
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              className={styles.input}
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          <div className={styles.field}>
+            <span className={styles.label}>I am a...</span>
+            <div className={styles.roleGrid}>
+              {ROLES.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  className={`${styles.roleOption} ${
+                    role === r ? styles.roleOptionActive : ''
+                  }`}
+                  onClick={() => setRole(r)}
+                  aria-pressed={role === r}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className={styles.field}>
             <label className={styles.label} htmlFor="email">
               Email
@@ -65,9 +108,9 @@ export default function LoginPage() {
               id="password"
               name="password"
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
               className={styles.input}
-              placeholder="••••••••"
+              placeholder="Create a password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -77,14 +120,14 @@ export default function LoginPage() {
           {error && <p className={styles.error}>{error}</p>}
 
           <button type="submit" className={styles.button} disabled={isSubmitting}>
-            {isSubmitting ? 'Logging in...' : 'Log in'}
+            {isSubmitting ? 'Creating account...' : 'Sign up'}
           </button>
         </form>
 
         <p className={styles.footer}>
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className={styles.link}>
-            Sign up
+          Already have an account?{' '}
+          <Link href="/" className={styles.link}>
+            Log in
           </Link>
         </p>
       </div>
