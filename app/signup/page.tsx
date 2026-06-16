@@ -2,13 +2,36 @@
 
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '../context/AuthContext';
 import styles from '../styles/auth.module.css';
+import radioStyles from './Windows7Radio.module.css';
+
+import { useEffect } from 'react';
+import { crtHum } from '../../utils/crtHum';
+import { useProximityEffect } from '../../hooks/useProximityEffect';
+import { ProximityDebug } from '../../components/ProximityDebug';
+import CRTOverlay from '../../components/CRTOverlay';
+
 
 const ROLES = ['Director', 'Producer', 'Freelancer', 'Client'] as const;
 type Role = (typeof ROLES)[number];
 
 export default function SignupPage() {
+  const { registerElement } = useProximityEffect();
+  
+    useEffect(() => {
+      // Register all interactive elements
+      const elements = document.querySelectorAll('input, button, fieldset');
+      elements.forEach(el => registerElement(el as HTMLElement));
+      
+      // Start hum
+      const startHum = () => crtHum.start();
+      document.addEventListener('click', startHum, { once: true });
+      
+      return () => crtHum.stop();
+    }, [registerElement]);
+
   const [role, setRole] = useState<Role | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,6 +56,7 @@ export default function SignupPage() {
     setIsSubmitting(true);
     try {
       await signup(email, password, role, name || undefined);
+      new Audio('./Logon.wav').play();
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -42,51 +66,50 @@ export default function SignupPage() {
 
   return (
     <main className={styles.page}>
-      <div className={styles.card}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>Create your account</h1>
-          <p className={styles.subtitle}>Tell us a bit about yourself to get started</p>
-        </div>
+      <div className={styles.background}>
+        <Image
+          src="/background.webp"
+          alt="Background"
+          fill
+          priority
+          style={{ objectFit: 'cover' }}
+        />
+      </div>
+
+      <div className={`${styles.card}`}>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="name">
-              Full Name (Optional)
-            </label>
             <input
               id="name"
               name="name"
               type="text"
               className={styles.input}
-              placeholder="Your name"
+              placeholder="Your name (Optional)"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
 
-          <div className={styles.field}>
-            <span className={styles.label}>I am a...</span>
-            <div className={styles.roleGrid}>
-              {ROLES.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  className={`${styles.roleOption} ${
-                    role === r ? styles.roleOptionActive : ''
-                  }`}
-                  onClick={() => setRole(r)}
-                  aria-pressed={role === r}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
+          <fieldset className={radioStyles.radioGroup} style={{ margin: 0 }}>
+            <div>Select you role</div>
+
+            {ROLES.map((r, index) => (
+              <div key={r}>
+                <input
+                  id={`role-${index}`}
+                  type="radio"
+                  name="role"
+                  value={r}
+                  checked={role === r}
+                  onChange={() => setRole(r)}
+                />
+                <label htmlFor={`role-${index}`}> {r}</label>
+              </div>
+            ))}
+          </fieldset>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="email">
-              Email
-            </label>
             <input
               id="email"
               name="email"
@@ -100,37 +123,40 @@ export default function SignupPage() {
             />
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="password">
-              Password
-            </label>
+          <div className={styles.passwordContainer}>
             <input
               id="password"
               name="password"
               type="password"
               autoComplete="new-password"
-              className={styles.input}
+              className={styles.passwordInput}
               placeholder="Create a password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <button
+              type="submit"
+              className={styles.forwardButton}
+              aria-label="Forward"
+            >
+              <Image src="/forward.png" alt="Forward" width={40} height={40} />
+            </button>
           </div>
 
           {error && <p className={styles.error}>{error}</p>}
 
-          <button type="submit" className={styles.button} disabled={isSubmitting}>
-            {isSubmitting ? 'Creating account...' : 'Sign up'}
-          </button>
         </form>
-
+        
         <p className={styles.footer}>
-          Already have an account?{' '}
-          <Link href="/" className={styles.link}>
-            Log in
+          <Link href="/" className="button">
+            <u>Login instead</u>
           </Link>
         </p>
+
       </div>
+            <CRTOverlay />
+
     </main>
   );
 }

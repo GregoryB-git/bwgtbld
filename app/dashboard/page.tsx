@@ -8,8 +8,10 @@ import FreelancerDashboard from './FreelancerDashboard';
 import ClientDashboard from './ClientDashboard';
 import { Role, User } from './types';
 
+
 export default function DashboardPage() {
   const { user: authUser, isLoading } = useAuth();
+  console.log('[page.tsx] authUser:', authUser);
 
   if (isLoading) {
     return (
@@ -27,10 +29,13 @@ export default function DashboardPage() {
 
   // Map the auth user to the dashboard User type
   const user: User = {
-    name: authUser.name || authUser.email.split('@')[0],
-    email: authUser.email,
-    role: authUser.role as Role, // Type assertion since we know the role matches
-  };
+  id: authUser.id,
+  name: authUser.name || authUser.email.split('@')[0],
+  email: authUser.email,
+  role: authUser.role as Role,
+};
+
+console.log('[page.tsx] user object being passed to dashboard:', user);
 
   const renderDashboard = () => {
     switch (user.role) {
@@ -46,6 +51,8 @@ export default function DashboardPage() {
         return null;
     }
   };
+
+  
 
   return (
     <DashboardLayout user={user} onRoleChange={() => {}}>
