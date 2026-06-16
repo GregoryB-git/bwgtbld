@@ -28,6 +28,7 @@ export default function DashboardLayout({ user, onRoleChange, children }: Dashbo
   const handleLogout = async () => {
     try {
       await logout();
+      new Audio('./Logoff.wav').play();
       router.push('/');
     } catch (error) {
       console.error('Logout failed:', error);
@@ -41,26 +42,11 @@ export default function DashboardLayout({ user, onRoleChange, children }: Dashbo
           <div className={styles.logo}>BWGTBLD</div>
 
           <div className={styles.headerRight}>
-            {onRoleChange && (
-              <select
-                className={styles.roleSwitcher}
-                value={user.role}
-                onChange={(e) => onRoleChange(e.target.value as Role)}
-                aria-label="Preview as role (demo only)"
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    View as {r}
-                  </option>
-                ))}
-              </select>
-            )}
+
+              
 
             <div className={styles.userInfo}>
-              <span className={styles.userName}>{user.name}</span>
-              <span className={`${styles.badge} ${ROLE_BADGE_CLASS[user.role]}`}>
-                {user.role}
-              </span>
+              <span className={styles.userName}>{"Hello, "}{user.name}</span>
             </div>
 
             <button 

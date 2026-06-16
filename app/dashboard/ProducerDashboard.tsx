@@ -1,126 +1,98 @@
-import styles from '../styles/dashboard.module.css';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getProducerData, saveAssignmentStatus } from './actions';
 import { User } from './types';
 
-interface DashboardProps {
-  user: User;
-}
+const COLS = ['todo', 'inprogress', 'done'] as const;
+const LABELS = { todo: 'To Do', inprogress: 'In Progress', done: 'Done' };
 
-const budgets = [
-  { name: 'Midnight Run — Feature Film', total: 480000, spent: 312000 },
-  { name: 'City Lights — Commercial', total: 95000, spent: 41000 },
-  { name: 'Echoes — Documentary', total: 150000, spent: 138500 },
-];
+type Task = { id: string; project_id: string; title: string; status: string };
+type Project = { id: string; name: string; date: string };
 
-const team = [
-  { name: 'Jordan Lee', role: 'Director of Photography', project: 'Midnight Run' },
-  { name: 'Sam Patel', role: 'Editor', project: 'Echoes' },
-  { name: 'Riley Chen', role: 'Production Designer', project: 'City Lights' },
-  { name: 'Morgan Diaz', role: 'Sound Mixer', project: 'Midnight Run' },
-];
+export default function ProducerDashboard({ user }: { user: User }) {
+  console.log('[ProducerDashboard] received user prop:', user);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragging, setDragging] = useState<Task | null>(null);
 
-const activity = [
-  { text: 'Invoice approved for Riley Chen — $4,200', date: 'Jun 14' },
-  { text: 'Budget revision submitted for Echoes', date: 'Jun 13' },
-  { text: 'New vendor quote received — Lighting Co.', date: 'Jun 12' },
-  { text: 'Contract signed with Jordan Lee', date: 'Jun 10' },
-];
-
-function formatCurrency(value: number) {
-  return value.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
+  useEffect(() => {
+  console.log('[ProducerDashboard] useEffect fired, user.id:', user.id);
+  if (!user.id) {
+    console.log('[ProducerDashboard] no user.id, returning early');
+    return;
+  }
+  getProducerData(user.id).then(({ projects, assignments }) => {
+    console.log('[ProducerDashboard] received projects:', projects);
+    console.log('[ProducerDashboard] received assignments:', assignments);
+    const sorted = [...projects].sort((a, b) => b.date.localeCompare(a.date));
+    setProjects(sorted as Project[]);
+    setTasks(assignments as Task[]);
+    if (sorted.length) setActiveId(sorted[0].id);
+  }).catch(err => {
+    console.error('[ProducerDashboard] fetch error:', err);
   });
-}
+}, [user.id]);
 
-export default function ProducerDashboard({ user }: DashboardProps) {
-  const totalBudget = budgets.reduce((sum, b) => sum + b.total, 0);
-  const totalSpent = budgets.reduce((sum, b) => sum + b.spent, 0);
+  async function onDrop(status: string) {
+    if (!dragging) return;
+    const task = dragging;
+    setDragging(null);
+    setTasks(ts => ts.map(t => t.id === task.id ? { ...t, status } : t));
+    await saveAssignmentStatus(task.id, status);
+  }
+
+  const visible = tasks.filter(t => t.project_id === activeId);
 
   return (
-    <>
-      <section className={styles.welcomeSection}>
-        <h1 className={styles.welcomeTitle}>Welcome back, {user.name.split(' ')[0]}</h1>
-        <p className={styles.welcomeSubtitle}>
-          Here&apos;s an overview of your project budgets and team.
-        </p>
-      </section>
+    <div style={{ display: 'flex', minHeight: '70vh', fontFamily: 'sans-serif' }}>
+      <div style={{ width: 200, background: '#1e1e2e', color: '#cdd6f4', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{ padding: '16px', borderBottom: '1px solid #313244', fontSize: 13, fontWeight: 700 }}>
+          Projects
+        </div>
+        <div style={{ flex: 1 }}>
+          {projects.map(p => (
+            <div key={p.id} onClick={() => setActiveId(p.id)} style={{
+              padding: '10px 16px', cursor: 'pointer', fontSize: 13,
+              background: activeId === p.id ? '#313244' : 'transparent',
+              borderLeft: activeId === p.id ? '3px solid #89b4fa' : '3px solid transparent'
+            }}>
+              <div>{p.name}</div>
+              <div style={{ fontSize: 11, color: '#6c7086' }}>{p.date}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-      <section className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>{formatCurrency(totalBudget)}</span>
-          <span className={styles.statLabel}>Total Budget</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>{formatCurrency(totalSpent)}</span>
-          <span className={styles.statLabel}>Spent to Date</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>{budgets.length}</span>
-          <span className={styles.statLabel}>Active Projects</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>7</span>
-          <span className={styles.statLabel}>Pending Invoices</span>
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Project Budgets</h2>
-        <ul className={styles.list}>
-          {budgets.map((budget) => {
-            const percent = Math.min(100, Math.round((budget.spent / budget.total) * 100));
-            const isNearLimit = percent >= 90;
-            return (
-              <li key={budget.name} className={styles.listItemColumn}>
-                <div className={styles.budgetHeader}>
-                  <span className={styles.listItemTitle}>{budget.name}</span>
-                  <span className={styles.listItemMeta}>
-                    {formatCurrency(budget.spent)} / {formatCurrency(budget.total)}
-                  </span>
+      <div style={{ flex: 1, padding: 24, overflow: 'auto', background: '#f4f5f7' }}>
+        <h2 style={{ margin: '0 0 20px', color: '#1e1e2e' }}>
+          {projects.find(p => p.id === activeId)?.name ?? ''}
+        </h2>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          {COLS.map(col => (
+            <div key={col}
+              onDragOver={e => e.preventDefault()}
+              onDrop={() => onDrop(col)}
+              style={{ flex: 1, background: '#e2e8f0', borderRadius: 8, padding: 12, minHeight: 300 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: '#5e6ad2', marginBottom: 12 }}>
+                {LABELS[col]} · {visible.filter(t => t.status === col).length}
+              </div>
+              {visible.filter(t => t.status === col).map(task => (
+                <div key={task.id} draggable
+                  onDragStart={() => setDragging(task)}
+                  style={{
+                    background: '#fff', borderRadius: 6, padding: '10px 12px',
+                    marginBottom: 8, boxShadow: '0 1px 3px rgba(0,0,0,.1)',
+                    cursor: 'grab', fontSize: 13, userSelect: 'none'
+                  }}>
+                  {task.title}
                 </div>
-                <div className={styles.progressBar}>
-                  <div
-                    className={`${styles.progressFill} ${isNearLimit ? styles.progressFillWarning : ''}`}
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
-      <section className={styles.sectionGrid}>
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Team Members</h2>
-          <ul className={styles.list}>
-            {team.map((member) => (
-              <li key={member.name} className={styles.listItem}>
-                <div className={styles.listItemInfo}>
-                  <span className={styles.listItemTitle}>{member.name}</span>
-                  <span className={styles.listItemMeta}>{member.role}</span>
-                </div>
-                <span className={styles.listItemMeta}>{member.project}</span>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </div>
+          ))}
         </div>
-
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Recent Activity</h2>
-          <ul className={styles.list}>
-            {activity.map((item, idx) => (
-              <li key={idx} className={styles.listItem}>
-                <div className={styles.listItemInfo}>
-                  <span className={styles.listItemTitle}>{item.text}</span>
-                </div>
-                <span className={styles.listItemTime}>{item.date}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-    </>
+      </div>
+    </div>
   );
 }
