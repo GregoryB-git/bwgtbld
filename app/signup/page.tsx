@@ -68,7 +68,7 @@ export default function SignupPage() {
     <main className={styles.page}>
       <div className={styles.background}>
         <Image
-          src="/background.webp"
+          src="/background.png"
           alt="Background"
           fill
           priority

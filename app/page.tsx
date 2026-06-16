@@ -66,7 +66,7 @@ export default function LoginPage() {
       {/* Background image */}
       <div className={styles.background}>
         <Image
-          src="/background.webp"
+          src="/background.png"
           alt="Background"
           fill
           priority
