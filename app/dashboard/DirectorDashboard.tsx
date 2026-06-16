@@ -1,121 +1,205 @@
-import styles from '../styles/dashboard.module.css';
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
 import { User } from './types';
 
 interface DashboardProps {
   user: User;
 }
 
-const projects = [
-  {
-    name: 'Midnight Run — Feature Film',
-    status: 'In Production',
-    statusType: 'active',
-    nextMilestone: 'Scene 14 shoot — Jun 18',
-  },
-  {
-    name: 'City Lights — Commercial',
-    status: 'Pre-Production',
-    statusType: 'pending',
-    nextMilestone: 'Location scout — Jun 20',
-  },
-  {
-    name: 'Echoes — Documentary',
-    status: 'In Review',
-    statusType: 'review',
-    nextMilestone: 'Director cut due — Jun 25',
-  },
-];
-
-const schedule = [
-  { time: '09:00', title: 'Crew briefing — Stage 3', location: 'Studio A' },
-  { time: '11:30', title: 'Rehearsal — Lead actors', location: 'Stage 3' },
-  { time: '14:00', title: 'Review dailies with editor', location: 'Edit Bay 2' },
-  { time: '16:30', title: 'Production meeting', location: 'Conference Room' },
-];
-
-const notes = [
-  { project: 'Midnight Run', note: 'Revise dialogue for Scene 22 — pacing feels slow', date: 'Jun 13' },
-  { project: 'Echoes', note: 'Add archival footage transition in Act 2', date: 'Jun 12' },
-  { project: 'City Lights', note: 'Confirm storyboard approval with client', date: 'Jun 11' },
-];
-
 export default function DirectorDashboard({ user }: DashboardProps) {
+  const [started, setStarted] = useState(false);
+  const ctxRef = useRef<AudioContext | null>(null);
+
+  const click = (ctx: AudioContext, time: number, dur = 0.015, vol = 0.3) => {
+    const size = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < size; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / size);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.value = vol;
+    src.connect(gain).connect(ctx.destination);
+    src.start(time);
+  };
+
+  const handleStart = () => {
+    setStarted(true);
+
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx: AudioContext = new AudioCtx();
+    ctxRef.current = ctx;
+    const now = ctx.currentTime;
+
+    // sharp starter clicks matching the visual cuts
+    [0.05, 0.15, 0.22, 0.32, 0.45, 0.55, 0.7, 0.85, 1.0, 1.15].forEach((t) => click(ctx, now + t));
+
+    // ballast hum that settles but never fully disappears
+    const hum = ctx.createOscillator();
+    hum.type = 'sawtooth';
+    hum.frequency.value = 120;
+    const humGain = ctx.createGain();
+    humGain.gain.value = 0;
+    hum.connect(humGain).connect(ctx.destination);
+    hum.start(now);
+
+    humGain.gain.setValueAtTime(0, now);
+    humGain.gain.linearRampToValueAtTime(0.06, now + 1.3);
+    humGain.gain.linearRampToValueAtTime(0.01, now + 2.5);
+    // permanent faint residual hum — loops as long as the component is mounted
+  };
+
+  useEffect(() => {
+    return () => {
+      ctxRef.current?.close();
+    };
+  }, []);
+
+  if (!started) {
+    return (
+      <div className="prompt" onClick={handleStart}>
+        click here
+        <style jsx>{`
+          .prompt {
+            flex: 1;
+            min-height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #030303;
+            color: #555;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            cursor: pointer;
+            user-select: none;
+          }
+          .prompt:hover {
+            color: #888;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <section className={styles.welcomeSection}>
-        <h1 className={styles.welcomeTitle}>Welcome back, {user.name.split(' ')[0]}</h1>
-        <p className={styles.welcomeSubtitle}>
-          Here&apos;s what&apos;s happening across your projects today.
-        </p>
-      </section>
+    <div className="placeholder">
+      <div className="content">
+        <span className="placeholder__label">Director Dashboard</span>
+        <h1 className="placeholder__title">Under Construction</h1>
+        <span className="placeholder__sub">{user.name} — back soon</span>
+      </div>
 
-      <section className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>3</span>
-          <span className={styles.statLabel}>Active Projects</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>2</span>
-          <span className={styles.statLabel}>Scripts in Review</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>4</span>
-          <span className={styles.statLabel}>Upcoming Shoots</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>5</span>
-          <span className={styles.statLabel}>Pending Approvals</span>
-        </div>
-      </section>
+      <style jsx>{`
+        .placeholder {
+          flex: 1;
+          min-height: 100%;
+          width: 100%;
+          position: relative;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #030303;
+        }
 
-      <section className={styles.sectionGrid}>
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Your Projects</h2>
-          <ul className={styles.list}>
-            {projects.map((project) => (
-              <li key={project.name} className={styles.listItem}>
-                <div className={styles.listItemInfo}>
-                  <span className={styles.listItemTitle}>{project.name}</span>
-                  <span className={styles.listItemMeta}>{project.nextMilestone}</span>
-                </div>
-                <span className={`${styles.statusBadge} ${styles[`status_${project.statusType}`]}`}>
-                  {project.status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        .placeholder::before {
+          content: '';
+          position: absolute;
+          top: -25%;
+          left: 50%;
+          width: 140%;
+          height: 65%;
+          transform: translateX(-50%);
+          background: radial-gradient(
+            ellipse at top,
+            rgba(255, 255, 255, 0.18),
+            rgba(255, 255, 255, 0.03) 40%,
+            transparent 70%
+          );
+          pointer-events: none;
+          animation:
+            tubeStartup 1.3s steps(1, end) 0s 1 forwards,
+            tubeIdle 4.5s steps(1, end) 1.3s infinite;
+        }
 
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Today&apos;s Schedule</h2>
-          <ul className={styles.list}>
-            {schedule.map((item) => (
-              <li key={item.time} className={styles.listItem}>
-                <div className={styles.listItemInfo}>
-                  <span className={styles.listItemTitle}>{item.title}</span>
-                  <span className={styles.listItemMeta}>{item.location}</span>
-                </div>
-                <span className={styles.listItemTime}>{item.time}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+        .content {
+          position: relative;
+          z-index: 1;
+          text-align: center;
+          padding: 4rem 2rem;
+          animation:
+            tubeStartup 1.3s steps(1, end) 0s 1 forwards,
+            tubeIdle 4.5s steps(1, end) 1.3s infinite;
+        }
 
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Recent Script Notes</h2>
-        <ul className={styles.list}>
-          {notes.map((note, idx) => (
-            <li key={idx} className={styles.listItem}>
-              <div className={styles.listItemInfo}>
-                <span className={styles.listItemTitle}>{note.note}</span>
-                <span className={styles.listItemMeta}>{note.project}</span>
-              </div>
-              <span className={styles.listItemTime}>{note.date}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </>
+        .placeholder__label {
+          display: block;
+          font-family: 'Courier New', monospace;
+          font-size: 0.75rem;
+          letter-spacing: 0.3em;
+          text-transform: uppercase;
+          color: #888;
+          margin-bottom: 1.5rem;
+        }
+
+        .placeholder__title {
+          font-family: Helvetica, Arial, sans-serif;
+          font-weight: 700;
+          font-size: clamp(2.5rem, 8vw, 6rem);
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          margin: 0;
+          line-height: 1;
+          color: #f5f5f5;
+          text-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
+        }
+
+        .placeholder__sub {
+          display: block;
+          font-family: 'Courier New', monospace;
+          font-size: 0.75rem;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: #666;
+          margin-top: 1.5rem;
+        }
+
+        @keyframes tubeStartup {
+          0% { opacity: 0; }
+          4% { opacity: 1; }
+          6% { opacity: 0; }
+          9% { opacity: 1; }
+          11% { opacity: 0.08; }
+          15% { opacity: 1; }
+          18% { opacity: 0; }
+          24% { opacity: 1; }
+          27% { opacity: 0.15; }
+          33% { opacity: 1; }
+          36% { opacity: 0; }
+          45% { opacity: 1; }
+          48% { opacity: 0.3; }
+          60% { opacity: 1; }
+          63% { opacity: 0.55; }
+          100% { opacity: 1; }
+        }
+
+        @keyframes tubeIdle {
+          0%, 100% { opacity: 1; }
+          3% { opacity: 0.88; }
+          5% { opacity: 1; }
+          34% { opacity: 1; }
+          36% { opacity: 0.92; }
+          38% { opacity: 1; }
+          61% { opacity: 1; }
+          63% { opacity: 0.85; }
+          66% { opacity: 1; }
+        }
+      `}</style>
+    </div>
   );
 }
