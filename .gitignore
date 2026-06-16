@@ -47,9 +47,6 @@ yarn-error.log*
 next-env.d.ts
 
 # CSV data files (contains user data!)
-/data/*.csv
-/data/*.json
-!data/.gitkeep
 
 # OS files
 .DS_Store
