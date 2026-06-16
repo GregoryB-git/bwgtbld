@@ -55,7 +55,7 @@ console.log('[page.tsx] user object being passed to dashboard:', user);
   
 
   return (
-    <DashboardLayout user={user} onRoleChange={() => {}}>
+    <DashboardLayout user={user}>
       {renderDashboard()}
     </DashboardLayout>
   );
