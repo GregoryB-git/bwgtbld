@@ -1,0 +1,7 @@
+id,producerid,project_id,title,status
+a1,fcb339f6-b85b-4c3d-a8ee-41297f43cea2,p1,Record vocals,done
+a2,fcb339f6-b85b-4c3d-a8ee-41297f43cea2,p1,Mix track 01,done
+a3,fcb339f6-b85b-4c3d-a8ee-41297f43cea2,p1,Master final cut,done
+a4,fcb339f6-b85b-4c3d-a8ee-41297f43cea2,p2,Episode 1 edit,inprogress
+a5,fcb339f6-b85b-4c3d-a8ee-41297f43cea2,p2,Sound design intro,todo
+a6,fcb339as-b85b-4c3d-a8ee-41297f43cea2,p2,you shoud not see this
