@@ -275,3 +275,50 @@
     height: 64px;
   }
 }
+
+/* ===== Field wrapper (for positioning error boxes) ===== */
+.fieldWrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* ===== Error box (matches input glass style) ===== */
+.errorBox {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 12px);
+  transform: translateY(-50%);
+  width: 200px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: white;
+  border: 1px solid rgba(255, 107, 107, 0.5);
+  border-radius: 6px;
+  background: rgba(255, 107, 107, 0.15);
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.errorBox::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: rgba(255, 107, 107, 0.4);
+}
+
+@media (max-width: 900px) {
+  .errorBox {
+    position: static;
+    transform: none;
+    width: 100%;
+    margin-top: 0.5rem;
+    right: auto;
+  }
+
+  .errorBox::after {
+    display: none;
+  }
+}
