@@ -27,7 +27,6 @@ export default function DashboardPage() {
     return null;
   }
 
-  // Map the auth user to the dashboard User type
   const user: User = {
   id: authUser.id,
   name: authUser.name || authUser.email.split('@')[0],

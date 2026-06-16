@@ -1,47 +1,51 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from './context/AuthContext';
 import styles from './styles/auth.module.css';
-
-import { useEffect } from 'react';
 import { crtHum } from '../utils/crtHum';
 import { useProximityEffect } from '../hooks/useProximityEffect';
-import { InteractiveElement } from '../components/InteractiveElement';
-import radioStyles from './Windows7Radio.module.css';
 import CRTOverlay from '../components/CRTOverlay';
 
-
+type FieldError = {
+  field: 'email' | 'password' | null;
+  message: string;
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<FieldError>({ field: null, message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
-
   const { registerElement } = useProximityEffect();
-  
-    useEffect(() => {
-      // Register all interactive elements
-      const elements = document.querySelectorAll('input, button, fieldset');
-      elements.forEach(el => registerElement(el as HTMLElement));
-      
-      // Start hum
-      const startHum = () => crtHum.start();
-      document.addEventListener('click', startHum, { once: true });
-      
-      return () => crtHum.stop();
-    }, [registerElement]);
+
+  useEffect(() => {
+    // Register all interactive elements
+    const elements = document.querySelectorAll('input, button, fieldset');
+    elements.forEach((el) => registerElement(el as HTMLElement));
+
+    // Start hum
+    const startHum = () => crtHum.start();
+    document.addEventListener('click', startHum, { once: true });
+
+    return () => crtHum.stop();
+  }, [registerElement]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
+    setError({ field: null, message: '' });
 
-    if (!email || !password) {
-      setError('Please enter your email and password.');
+    if (!email) {
+      new Audio('./Ding.wav').play();
+      setError({ field: 'email', message: 'Please enter your email.' });
+      return;
+    }
+    if (!password) {
+      new Audio('./Ding.wav').play();
+      setError({ field: 'password', message: 'Please enter your password.' });
       return;
     }
 
@@ -50,15 +54,11 @@ export default function LoginPage() {
       await login(email, password);
       new Audio('./Logon.wav').play();
     } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again.');
+      new Audio('./Ding.wav').play();
+      setError({ field: 'password', message: err.message || 'Something went wrong. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleForward = () => {
-    // Add your forward functionality here
-    console.log('Forward button clicked');
   };
 
   return (
@@ -86,49 +86,56 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className={styles.field}>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              className={styles.input}
-              placeholder="Your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className={styles.passwordContainer}>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              className={styles.passwordInput}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-
-            <button
-              type="submit"
-              onClick={handleForward}
-              className={styles.forwardButton}
-              aria-label="Forward"
-            >
-              <Image
-                src="/forward.png"
-                alt="Forward"
-                width={40}
-                height={40}
+          <div className={styles.fieldWrapper}>
+            {error.field === 'email' && (
+              <div className={styles.errorBox}>{error.message}</div>
+            )}
+            <div className={styles.field}>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                className={styles.input}
+                placeholder="Your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
-            </button>
+            </div>
           </div>
 
-          {error && <p className={styles.error}>{error}</p>}
+          <div className={styles.fieldWrapper}>
+            {error.field === 'password' && (
+              <div className={styles.errorBox}>{error.message}</div>
+            )}
+            <div className={styles.passwordContainer}>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                className={styles.passwordInput}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="submit"
+                className={styles.forwardButton}
+                aria-label="Forward"
+                disabled={isSubmitting}
+              >
+                <Image
+                  src="/forward.png"
+                  alt="Forward"
+                  width={40}
+                  height={40}
+                />
+              </button>
+            </div>
+          </div>
         </form>
 
         <p className={styles.footer}>
@@ -136,10 +143,8 @@ export default function LoginPage() {
             <u>Sign up</u>
           </Link>
         </p>
-
       </div>
-              <CRTOverlay />
-
+      <CRTOverlay />
     </main>
   );
 }
